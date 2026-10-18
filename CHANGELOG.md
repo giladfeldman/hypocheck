@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.0 (unreleased — awaiting owner approval before tagging)
+## v0.1.0 (2026-10-18)
 
 First release. The code of the stable core comes from the Hypothesizer web app, behaviour unchanged.
 
@@ -25,3 +25,16 @@ and the v0.5 importer).
   `schema/`), `anchorQuote` / `validateAnchors`, `extractLedger` (section-wise chunking, coverage, no field
   defaults), `evaluatePublished` (rule set `published-0.1.0`, rules R1–R7 with caps enforced in code),
   `toPluginIssues` (SciMeto issue shape).
+
+**Known limitations of the experimental evaluator (from a 10-paper development pre-test, 2026-10-18).** On
+published papers, rule set `published-0.1.0` produced 9 NOTEs (1 matching a concern two independent annotators
+agreed on, 6 false alerts, 1 wrong attribution, 1 unresolved) and missed 5 of 6 agreed in-scope concerns; no WARN
+was emitted (caps held). Reproduced defects, to be fixed in 0.2:
+- `LABEL_RE` rejects upper-case sub-letters ("H1A", "Hypothesis 1A") and over-matches e.g. "H2 receptor".
+- R3 looks for an equivalence/Bayes basis in the whole text including the reference list.
+- Section classes are not inherited by numbered/"Study n" subsections, shrinking R1/R2/R3/R5 scan ranges.
+- `extractLedger` emits no analysis refs, links or tail direction, so R4 and R7 cannot fire on extracted graphs.
+- R3 absence patterns match covariate/robustness sentences and miss "rule out" claims.
+- No ligature folding in anchoring; every extracted hypothesis is placed in a single study.
+Do not use the experimental evaluator for claims about papers.
+
