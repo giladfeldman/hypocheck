@@ -61,6 +61,18 @@ describe("extraction parsing", () => {
     expect(parseExtraction(JSON.stringify({ hypotheses: [bad] }))).toBeNull();
   });
 
+  it("accepts an item that omits nullable keys entirely (regression d-d55876: zod 4 rejected missing keys)", () => {
+    const terse = { quote: "A raises B.", first_variable: "A", association: "increased" };
+    const ex = parseExtraction(JSON.stringify({ hypotheses: [terse] }))!;
+    expect(ex).not.toBeNull();
+    expect(ex.hypotheses).toHaveLength(1);
+    expect(ex.hypotheses[0].second_variable).toBe("");
+    expect(ex.hypotheses[0].label).toBe("");
+    const crit = parseCritique(JSON.stringify({ suggestions: [{ criterion: "x", comment: "c" }] }));
+    expect(crit).not.toBeNull();
+    expect(crit!.improved_statement).toBe("");
+  });
+
   it("puts rule-based candidate sentences in the prompt and fences the document", () => {
     const { prompt } = extractionPrompt(DOC);
     expect(prompt).toContain("[1] H1: Participants will select fewer");

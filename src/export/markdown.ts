@@ -9,6 +9,7 @@ import {
   variableDefinition,
   variableLists,
 } from "../hypothesis/generate.js";
+import { packageText, projectPackages } from "../hypothesis/package.js";
 
 function cell(s: string): string {
   return s.replace(/\|/g, "\\|").replace(/\n+/g, " ").trim() || " ";
@@ -22,7 +23,11 @@ export function projectMarkdown(project: Project): string {
   if (c.phenomenon.trim()) lines.push(`**Phenomenon:** ${c.phenomenon.trim()}`, "");
   if (c.population.trim()) lines.push(`**Population:** ${c.population.trim()}`, "");
 
-  lines.push("## Hypotheses", "", summarySentence(project), "");
+  // The complete package first: prediction, measures, decision rules; open parts stay "[not specified]".
+  lines.push("## Hypotheses, ready to use", "");
+  for (const pkg of projectPackages(project)) lines.push("```", packageText(pkg), "```", "");
+
+  lines.push("## Hypothesis statements", "", summarySentence(project), "");
   for (const s of hypothesisStatements(project)) lines.push(`- ${s}`);
   lines.push("");
 

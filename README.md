@@ -18,7 +18,7 @@ spreadsheet by Bjørn Sætrevik and team.
 ## Install
 
 ```bash
-npm install github:giladfeldman/hypocheck#v0.1.0
+npm install github:giladfeldman/hypocheck#v0.1.1
 # only if you use the Word / Excel exports:
 npm install docx exceljs
 ```
@@ -103,6 +103,32 @@ for (const issue of toPluginIssues(report)) console.log(issue.severity, issue.ti
   criterion reads is still empty; it is neither a pass nor a failure).
 - `hasEffectBounds(h)` (a SESOI, or both an optimistic and a pessimistic bound) and `predictionBoundsDone(h)`.
 - `CITATIONS`, `Citation`, `cite(...ids)`. Every DOI is checked against Crossref by `npm run verify:citations`.
+
+### Sentence parsing and the "ready to use" package
+
+- `parseHypothesisSentence(input)` → `ParseResult`: a bounded, rule-based (no AI) reading of a one-sentence
+  prediction into `ParseParts` (`predictor`, `outcome`, `relationship`, `comparison`, `population`), each a
+  `TextPart` with the `Span` it came from (`input.slice(start, end) === text`). `ParseStatus` is `"parsed"`,
+  `"ambiguous"` (one question to ask; see `Alternative`, `QuestionOption`) or `"unsupported"` with an
+  `UnsupportedReason` (`"empty"`, `"question"`, `"compound"`, `"negated"`, `"moderation"`, `"too_long"`,
+  `"no_pattern"`); `UNSUPPORTED_MESSAGE` maps each reason to user wording. Direction is set only when explicit
+  (`RelationshipPart`, `Direction`).
+- `addHypothesisFromParts(project, parts, options?)` commits user-confirmed `ConfirmedParts` into a new project
+  (returns `{ project, hypothesisId, reused }`; an existing variable with the same name is reused, see
+  `findVariable(project, name)`). Accepts `IdOptions`.
+- `hypothesisPackage(project, l)` → `HypothesisPackage` (prediction, population, comparison, measures,
+  smallest effect, test, decision rules); `packageText(pkg)`, `projectPackages(project)`,
+  `projectPackageText(project)`. Open parts print as `NOT_SPECIFIED` (`"[not specified]"`), never invented.
+
+### Next decisions (no score)
+
+`nextDecisions(project, hypothesisId, limit)` → `NextDecisions` (`next`, `later`, `specified`): the open
+criteria of one hypothesis turned into at most `limit` (default 3) concrete `Decision`s, ranked
+deterministically by `tier` (1 incomplete claim, 2 comparison/measurement, 3 decision rules, 4 supporting
+detail). Each `Decision` has `id` (`DecisionId`), `title`, `detail`, `panel` (`PanelId`), `criteria` and the
+worst `status`. `SpecifiedItem`, `SPECIFIED_LABEL`, `PRESENCE_CRITERIA` and `passWording(criterion)` (returns
+`label` and an optional `note`) word the criteria that are already met. It only re-reads `checkHypothesis`
+results and never changes a status.
 
 ### Free text (no AI)
 

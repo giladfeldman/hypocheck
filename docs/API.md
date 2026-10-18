@@ -45,6 +45,39 @@ type Scorecard = { label: string; hypothesis: Hypothesis; results: CheckResult[]
 type ProjectIssue = { criterion: string; status: Status; message: string };
 type AuthoringAssessment = { cards: Scorecard[]; issues: ProjectIssue[] };
 
+// Sentence parsing
+type ParseStatus = "parsed" | "ambiguous" | "unsupported";
+type Span = { start: number; end: number };
+type TextPart = { text: string; span: Span };
+type Direction = "positive" | "negative" | "nondirectional" | "equivalence" | "unspecified";
+type RelationshipPart = TextPart & { direction: Direction; association: string };
+type ParseParts = { predictor?: TextPart; outcome?: TextPart; relationship?: RelationshipPart;
+  comparison?: TextPart; population?: TextPart };
+type Alternative = { label: string; association: string; direction: Direction };
+type QuestionOption = { label: string; association: string | null };
+type UnsupportedReason = "empty" | "question" | "compound" | "negated" | "moderation" | "too_long" | "no_pattern";
+type ParseResult = { status: ParseStatus; input: string; pattern: string | null; parts: ParseParts;
+  alternatives: Alternative[]; question?: { text: string; options: QuestionOption[] };
+  reason?: UnsupportedReason; notes: string[] };
+type ConfirmedParts = { predictor: string; outcome: string; association: string; comparison?: string; population?: string };
+addHypothesisFromParts(project, parts: ConfirmedParts, options?: IdOptions):
+  { project: Project; hypothesisId: string; reused: string[] };
+type HypothesisPackage = { label: string; prediction: string; population: string | null; comparison: string | null;
+  measures: { name: string; how: string | null }[]; smallestEffect: string | null; test: string | null;
+  rules: { supports: string | null; against: string | null; inconclusive: string | null } };
+packageText(pkg: HypothesisPackage): string;
+
+// Next decisions
+type PanelId = "parts" | "population" | "comparison" | "measures" | "decide" | "bounds" | "supporting" | "why" | "organise";
+type DecisionId = "complete" | "direction" | "population" | "comparison" | "measures" | "against" | "bounds"
+  | "inference" | "definite" | "supporting" | "why" | "form" | "status";
+type Decision = { id: DecisionId; tier: 1 | 2 | 3 | 4; title: string; detail: string[]; panel: PanelId;
+  criteria: string[]; status: "warn" | "fail" | "pending" };
+type SpecifiedItem = { criterion: string; label: string };
+type NextDecisions = { next: Decision[]; later: Decision[]; specified: SpecifiedItem[] };
+nextDecisions(project, hypothesisId, limit = 3): NextDecisions;
+passWording(criterion): { label: string; note?: string };
+
 // Free text
 type Specificity = { level: 0 | 1 | 2 | 3; hasHypothesis: boolean; hasDirection: boolean; hasMagnitude: boolean;
   hasDisconfirm: boolean };

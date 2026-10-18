@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.1.1 (2026-10-18)
+
+**Fixed**
+- AI reply parsers (`parseExtraction`, `parseCritique`) rejected an item that OMITTED a nullable key (in zod 4 a
+  union containing `z.undefined()` still rejects a missing key), so terse model replies silently lost hypotheses.
+  A missing key is now read as empty.
+
+**Added (stable core, moved from the Hypothesizer app, behaviour unchanged)**
+- `parseHypothesisSentence`: bounded rule-based reading of a one-sentence prediction into parts with spans.
+- `addHypothesisFromParts` / `findVariable`: commit confirmed parts into a project (accepts `IdOptions`).
+- `hypothesisPackage` / `packageText` / `projectPackages` / `projectPackageText`: the "ready to use" package with
+  `[not specified]` for open parts.
+- `nextDecisions` / `passWording`: the top-3 ranked next decisions per hypothesis (no score).
+
+**Changed**
+- Markdown and Word exports now open with "Hypotheses, ready to use" (one package per hypothesis), followed by
+  "Hypothesis statements" (previously "Hypotheses").
+
 ## v0.1.0 (2026-10-18)
 
 First release. The code of the stable core comes from the Hypothesizer web app, behaviour unchanged.

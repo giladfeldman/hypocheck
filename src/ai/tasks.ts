@@ -101,8 +101,11 @@ export function fence(text: string): string {
   return text.replace(/>>>/g, "> > >").replace(/<<</g, "< < <");
 }
 
+// `.optional()` is required: in zod 4 a union containing `z.undefined()` still rejects a
+// MISSING key, so a terse reply that omits a nullable field lost the whole item (d-d55876).
 const nullableStr = z
-  .union([z.string(), z.null(), z.undefined()])
+  .union([z.string(), z.null()])
+  .optional()
   .transform((v) => (typeof v === "string" ? v.trim() : ""));
 
 // ───────────────────────── extraction ─────────────────────────

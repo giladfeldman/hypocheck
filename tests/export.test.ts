@@ -97,5 +97,15 @@ describe("markdown and docx", () => {
     const xml = await zip.file("word/document.xml")!.async("string");
     expect(xml).toContain("Unrealistic rule");
     expect(xml).toContain("Theory that could be shown wrong by the outcomes");
+    expect(xml).toContain("Hypotheses, ready to use");
+    expect(xml).toContain("Counts against: [not specified]");
+  });
+
+  it("both lead with the hypothesis package and keep open parts as [not specified]", async () => {
+    const { project } = await importLegacyXlsx(await confBiasXlsx());
+    const md = projectMarkdown(project);
+    expect(md.indexOf("## Hypotheses, ready to use")).toBeLessThan(md.indexOf("## Hypothesis statements"));
+    expect(md).toContain('H2. "Unrealistic rule" will be associated with higher "Confirmation bias effect".');
+    expect(md).toContain("  Counts against: [not specified]");
   });
 });

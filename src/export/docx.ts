@@ -22,6 +22,7 @@ import {
   variableDefinition,
   variableLists,
 } from "../hypothesis/generate.js";
+import { packageText, projectPackages } from "../hypothesis/package.js";
 
 const p = (text: string, opts: { bold?: boolean } = {}) => new Paragraph({ children: [new TextRun({ text, bold: opts.bold })] });
 const h = (text: string, level: (typeof HeadingLevel)[keyof typeof HeadingLevel]) => new Paragraph({ text, heading: level });
@@ -43,7 +44,15 @@ export async function projectDocx(project: Project): Promise<Buffer> {
   if (c.researchQuestion.trim()) body.push(p(`Research question: ${c.researchQuestion.trim()}`));
   if (c.population.trim()) body.push(p(`Population: ${c.population.trim()}`));
 
-  body.push(h("Hypotheses", HeadingLevel.HEADING_1), p(summarySentence(project)));
+  // The complete package first: prediction, measures, decision rules; open parts stay "[not specified]".
+  body.push(h("Hypotheses, ready to use", HeadingLevel.HEADING_1));
+  for (const pkg of projectPackages(project)) {
+    const [first, ...rest] = packageText(pkg).split("\n");
+    body.push(p(first, { bold: true }));
+    for (const line of rest) body.push(new Paragraph({ children: [new TextRun({ text: line })], indent: line.startsWith("  ") ? { left: 360 } : undefined }));
+  }
+
+  body.push(h("Hypothesis statements", HeadingLevel.HEADING_1), p(summarySentence(project)));
   for (const s of hypothesisStatements(project)) body.push(new Paragraph({ text: s, bullet: { level: 0 } }));
 
   body.push(h("Variables", HeadingLevel.HEADING_1));
