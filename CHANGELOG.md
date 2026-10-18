@@ -15,6 +15,8 @@
 - `nextDecisions` / `passWording`: the top-3 ranked next decisions per hypothesis (no score).
 
 **Changed**
+- Every entry in `exports` also has a `default` condition, so CommonJS loaders (Playwright, Jest, ts-node) on
+  Node versions with `require(esm)` can load the package; `import` resolution is unchanged.
 - Markdown and Word exports now open with "Hypotheses, ready to use" (one package per hypothesis), followed by
   "Hypothesis statements" (previously "Hypotheses").
 

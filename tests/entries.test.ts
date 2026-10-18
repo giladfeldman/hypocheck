@@ -41,3 +41,15 @@ describe("entry point dependencies", () => {
     expect([...bareImports("export-xlsx.ts").bare].sort()).toEqual(["exceljs", "zod"]);
   });
 });
+
+describe("package exports", () => {
+  // CommonJS loaders (Playwright, ts-node, Jest) resolve with the "require" / "default"
+  // conditions; with only "import" they fail with 'No "exports" main defined'.
+  const pkg = JSON.parse(readFileSync(resolve(SRC, "../package.json"), "utf8")) as { exports: Record<string, unknown> };
+  it("every JS entry also offers a default condition", () => {
+    for (const [key, target] of Object.entries(pkg.exports)) {
+      if (typeof target === "string") continue;
+      expect((target as Record<string, string>).default, key).toBe((target as Record<string, string>).import);
+    }
+  });
+});
