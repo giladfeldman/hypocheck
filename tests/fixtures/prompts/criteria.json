@@ -1,0 +1,92 @@
+[
+  {
+    "id": "variables",
+    "number": 1,
+    "title": "Variables are named and given a role"
+  },
+  {
+    "id": "operationalized",
+    "number": 2,
+    "title": "Each variable is operationalized"
+  },
+  {
+    "id": "single_claim",
+    "number": 3,
+    "title": "One complete prediction per hypothesis"
+  },
+  {
+    "id": "direction",
+    "number": 4,
+    "title": "The direction of the effect is stated"
+  },
+  {
+    "id": "comparison",
+    "number": 5,
+    "title": "The comparison is stated (compared to what?)"
+  },
+  {
+    "id": "form",
+    "number": 6,
+    "title": "The form of the relationship is stated"
+  },
+  {
+    "id": "sesoi",
+    "number": 7,
+    "title": "The smallest effect size of interest (or expected bounds) is stated"
+  },
+  {
+    "id": "inference",
+    "number": 8,
+    "title": "The inference criterion is stated"
+  },
+  {
+    "id": "falsification",
+    "number": 9,
+    "title": "The result that would count against the hypothesis is stated"
+  },
+  {
+    "id": "population",
+    "number": 10,
+    "title": "Population and boundary conditions are stated"
+  },
+  {
+    "id": "auxiliary",
+    "number": 11,
+    "title": "Auxiliary assumptions are listed"
+  },
+  {
+    "id": "manipulation_check",
+    "number": 12,
+    "title": "There is a plan to show each manipulation worked"
+  },
+  {
+    "id": "mechanism",
+    "number": 13,
+    "title": "The mechanism is stated"
+  },
+  {
+    "id": "derivation",
+    "number": 14,
+    "title": "The derivation from theory is explicit"
+  },
+  {
+    "id": "theory_at_stake",
+    "number": 15,
+    "title": "The theory that could be shown wrong is named"
+  },
+  {
+    "id": "severity",
+    "number": 16,
+    "title": "The test is set up to be able to fail"
+  },
+  {
+    "id": "confirmatory",
+    "number": 17,
+    "title": "Confirmatory vs exploratory status and priority are clear"
+  },
+  {
+    "id": "scope",
+    "number": 18,
+    "title": "Predictions and criteria are worded definitely"
+  }
+]

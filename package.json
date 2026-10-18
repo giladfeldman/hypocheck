@@ -1,0 +1,55 @@
+{
+  "name": "hypocheck",
+  "version": "0.1.0",
+  "description": "Hypothesis specification and checking: a zod project model for specific, falsifiable hypotheses, 18 deterministic authoring criteria, statement/template generation, exports, injected-LLM extraction prompts, and an experimental evidence-graph format with a published-paper consistency evaluator.",
+  "license": "MIT",
+  "author": "Gilad Feldman",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/giladfeldman/hypocheck.git"
+  },
+  "homepage": "https://github.com/giladfeldman/hypocheck#readme",
+  "keywords": ["hypotheses", "falsifiability", "preregistration", "registered-reports", "meta-science", "open-science"],
+  "engines": { "node": ">=18.0.0" },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./export-docx": { "types": "./dist/export-docx.d.ts", "import": "./dist/export-docx.js" },
+    "./export-xlsx": { "types": "./dist/export-xlsx.d.ts", "import": "./dist/export-xlsx.js" },
+    "./experimental": { "types": "./dist/experimental/index.d.ts", "import": "./dist/experimental/index.js" },
+    "./graph.schema.json": "./schema/hypocheck.graph-0.1.0.schema.json",
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "schema", "docs"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "docs:check": "node scripts/check-docs-coverage.mjs",
+    "schema:write": "node scripts/write-graph-schema.mjs",
+    "verify:citations": "node scripts/verify-citations.mjs"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "peerDependencies": {
+    "docx": "^9.10.0",
+    "exceljs": "^4.4.0"
+  },
+  "peerDependenciesMeta": {
+    "docx": { "optional": true },
+    "exceljs": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "docx": "^9.10.0",
+    "exceljs": "^4.4.0",
+    "jszip": "^3.10.2",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.7"
+  }
+}
