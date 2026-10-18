@@ -7,3 +7,4 @@ coverage/
 # Local Claude Code skills and correspondence: internal, never published (public repo)
 .claude/
 communications/
+TODO.md
