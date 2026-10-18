@@ -92,8 +92,10 @@ const ABBREV = /(?:\b(?:e\.g|i\.e|cf|vs|al|etc|approx|ca|Fig|Figs|Tab|Eq|Eqs|No|
 /**
  * Split text into sentences with offsets into the original string. A sentence ends
  * at . ! ? followed by whitespace (not inside decimals like "d = 0.3" or after
- * abbreviations like "e.g."), or at a blank line.
+ * abbreviations like "e.g."), at a blank line, or before a line that starts with a hypothesis label.
  */
+const LINE_LABEL = /^\n[ \t]*(?:H\d+[a-z]?|Hypothesis\s+\d+[a-z]?)\s*[:.)]/i;
+
 export function splitSentences(text: string): Candidate[] {
   const out: Candidate[] = [];
   let start = 0;
@@ -107,6 +109,12 @@ export function splitSentences(text: string): Candidate[] {
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (ch === "\n" && /^\n[ \t]*\n/.test(text.slice(i, i + 40))) {
+      push(i);
+      continue;
+    }
+    // A line that starts with a hypothesis label ("H2:", "Hypothesis 2:") starts a new sentence even
+    // when the previous line lost its final period (PDF line wraps drop it).
+    if (ch === "\n" && LINE_LABEL.test(text.slice(i, i + 40))) {
       push(i);
       continue;
     }

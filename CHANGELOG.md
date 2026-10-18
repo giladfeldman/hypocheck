@@ -6,6 +6,9 @@
 - AI reply parsers (`parseExtraction`, `parseCritique`) rejected an item that OMITTED a nullable key (in zod 4 a
   union containing `z.undefined()` still rejects a missing key), so terse model replies silently lost hypotheses.
   A missing key is now read as empty.
+- `splitSentences` / `findCandidates`: a line that starts with a hypothesis label (`H2:`, `Hypothesis 2:`) now
+  starts a new sentence even when the previous line has no final period (PDF line wraps drop it); before, H1 and
+  H2 merged into one candidate.
 
 **Added (stable core, moved from the Hypothesizer app, behaviour unchanged)**
 - `parseHypothesisSentence`: bounded rule-based reading of a one-sentence prediction into parts with spans.

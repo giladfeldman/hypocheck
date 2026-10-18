@@ -75,3 +75,20 @@ describe("candidate context", () => {
     expect(c[c.length - 1].context).toBe("H2: Social rules will reduce bias.");
   });
 });
+
+describe("line-initial labels (d-3d1a48)", () => {
+  it("starts a new candidate at a line-initial H2: even when the previous line has no final period", () => {
+    const text = "H1: Participants who sleep eight hours will score higher on the exam than those who sleep four ho\nH2: We predict that caffeine will increase reaction speed compared to placebo.";
+    const c = findCandidates(text);
+    expect(c.map((x) => x.label)).toEqual(["H1", "H2"]);
+    expect(text.slice(c[1].start, c[1].end)).toBe(c[1].text);
+    expect(c[1].text.startsWith("H2:")).toBe(true);
+  });
+
+  it("also splits at 'Hypothesis 2:' and keeps a mid-line H2 reference inside its sentence (control)", () => {
+    const a = findCandidates("Hypothesis 1: Social rules will decrease confirmatory selections compared to descriptive rules\nHypothesis 2: Time pressure will increase confirmatory selections.");
+    expect(a).toHaveLength(2);
+    const b = splitSentences("We predict, as in H2: above, that time pressure will increase errors");
+    expect(b).toHaveLength(1);
+  });
+});
