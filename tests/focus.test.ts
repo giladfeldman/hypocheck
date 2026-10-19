@@ -98,12 +98,36 @@ describe("parseFill (suggested answers)", () => {
       { field: "falsifies", value: "An effect reliably smaller than [SESOI]", why: "" },
     ]);
   });
+  it("drops a supports/falsifies value that states alpha, a SESOI or an effect-size number; keeps [SESOI] placeholders", () => {
+    const reply = JSON.stringify({
+      suggestions: [
+        { field: "falsifies", value: "an effect smaller than d = 0.2 at alpha = .05", why: "x" },
+        { field: "supports", value: "p < .05 and an effect larger than [SESOI]", why: "x" },
+      ],
+    });
+    expect(parseFill(reply)).toEqual([]);
+    const ok = JSON.stringify({ suggestions: [{ field: "supports", value: "A higher mean in the treatment group than the control, larger than [SESOI]", why: "x" }] });
+    expect(parseFill(ok)?.map((s) => s.field)).toEqual(["supports"]);
+  });
   it("the prompt lists only the requested open fields and forbids SESOI numbers", () => {
     const p = fillPrompt(emptyProject(), newHypothesis(), ["population", "test"]);
     expect(p.prompt).toContain("- population:");
     expect(p.prompt).toContain("- test:");
     expect(p.prompt).not.toContain("- theory:");
     expect(p.system).toMatch(/Never suggest numbers/);
+  });
+});
+
+describe("focusDocument budget", () => {
+  it("never exceeds the budget even when candidate passages overlap (planted overlap)", () => {
+    const bg = "Background sentence about prior work. ".repeat(900);
+    const doc = `Title\n\nAbstract. We study things.\n\n${bg}\n\nHypotheses\nH1: We predict that A will increase B.\nH2: We predict that C will decrease D. ${bg}\n\nMethod\n${bg}\n`;
+    for (const budget of [3000, 6000, 9000, 18000]) {
+      const f = focusDocument(doc, budget);
+      expect(f.complete).toBe(false);
+      expect(f.text.length).toBeLessThanOrEqual(budget);
+      for (const p of f.text.split(FOCUS_GAP)) expect(doc.includes(p)).toBe(true);
+    }
   });
 });
 

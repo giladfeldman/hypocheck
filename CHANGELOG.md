@@ -22,7 +22,9 @@
 - `partsPrompt` / `parseParts` / `aiParts`: AI reading of one sentence into parts (a comparison or population only
   when the sentence names it).
 - `fillPrompt` / `parseFill` / `aiFill` and `FILL_FIELDS`: suggested answers for a hypothesis's open fields; never a
-  smallest effect of interest or alpha.
+  smallest effect of interest or alpha (the prompt says so, and `parseFill` drops a supports/falsifies value that states
+  alpha, a p threshold, a smallest effect of interest or an effect-size number; `[SESOI]` placeholders are kept).
+- `focusDocument` never returns more than `budgetChars` (overlapping passages were counted twice, overshooting by up to ~1.5%).
 
 ## v0.1.1 (2026-10-18)
 

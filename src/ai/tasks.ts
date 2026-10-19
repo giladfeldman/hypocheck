@@ -432,7 +432,17 @@ const FillSchema = z.object({
     .max(20),
 });
 
-/** Keep one suggestion per known field, drop empty values and association values outside the vocabulary. */
+/**
+ * A suggested value that states a number the researcher must justify: alpha, a p threshold, a
+ * smallest effect of interest or an effect-size value. A [bracketed placeholder] such as [SESOI] is fine.
+ */
+const JUSTIFIED_NUMBER =
+  /\b(?:alpha|α|sesoi|smallest effect(?: size)?(?: of interest)?)\b[^.;]{0,20}?[=<>≤≥:]?\s*[-+]?\.?\d|\bp\s*[<≤=]\s*\.?\d|\b(?:d|g|r|η2|f2|or|β|beta)\s*[=<>≤≥]\s*[-+]?\.?\d/i;
+
+/**
+ * Keep one suggestion per known field, drop empty values and association values outside the vocabulary,
+ * and drop a supports/falsifies value that states alpha, a smallest effect of interest or an effect-size number.
+ */
 export function parseFill(text: string): FillSuggestion[] | null {
   const r = FillSchema.safeParse(extractJsonObject(text));
   if (!r.success) return null;
@@ -443,6 +453,7 @@ export function parseFill(text: string): FillSuggestion[] | null {
     const value = s.value.trim();
     if (!FILL_FIELDS.includes(field) || !value || seen.has(field)) continue;
     if (field === "association" && !ASSOC_IDS.includes(value as never)) continue;
+    if ((field === "supports" || field === "falsifies") && JUSTIFIED_NUMBER.test(value.replace(/\[[^\]]*\]/g, ""))) continue;
     seen.add(field);
     out.push({ field, value, why: s.why });
   }

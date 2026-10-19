@@ -142,24 +142,25 @@ export function focusDocument(document: string, budgetChars: number): FocusedDoc
 
   // Take ranges by priority (document order within a priority) until the budget is used.
   ranges.sort((x, y) => x.priority - y.priority || x.start - y.start);
-  const kept: { start: number; end: number }[] = [];
-  let used = 0;
-  for (const r of ranges) {
-    // Characters this range adds beyond what is already kept.
-    let extra = r.end - r.start;
-    for (const k of kept) extra -= Math.max(0, Math.min(r.end, k.end) - Math.max(r.start, k.start));
-    if (extra <= 0) continue;
-    if (used + extra + FOCUS_GAP.length > budgetChars) continue;
-    kept.push({ start: r.start, end: r.end });
-    used += extra + FOCUS_GAP.length;
-  }
   // Merge overlapping or touching ranges, in document order.
-  kept.sort((x, y) => x.start - y.start);
-  const merged: { start: number; end: number }[] = [];
-  for (const k of kept) {
-    const prev = merged[merged.length - 1];
-    if (prev && k.start <= prev.end + 2) prev.end = Math.max(prev.end, k.end);
-    else merged.push({ ...k });
+  const mergeRanges = (list: { start: number; end: number }[]) => {
+    const sorted = [...list].sort((x, y) => x.start - y.start);
+    const out: { start: number; end: number }[] = [];
+    for (const k of sorted) {
+      const prev = out[out.length - 1];
+      if (prev && k.start <= prev.end + 2) prev.end = Math.max(prev.end, k.end);
+      else out.push({ start: k.start, end: k.end });
+    }
+    return out;
+  };
+  // The exact size of what would be sent: merged passages plus one gap marker between them.
+  const sizeOf = (list: { start: number; end: number }[]) =>
+    list.reduce((n, r) => n + (r.end - r.start), 0) + FOCUS_GAP.length * Math.max(0, list.length - 1);
+  let merged: { start: number; end: number }[] = [];
+  for (const r of ranges) {
+    const next = mergeRanges([...merged, { start: r.start, end: r.end }]);
+    if (sizeOf(next) > budgetChars) continue;
+    merged = next;
   }
   // Nothing fitted (a budget smaller than any passage): fall back to the start of the text.
   if (!merged.length) merged.push({ start: 0, end: Math.min(text.length, budgetChars) });
