@@ -9,6 +9,11 @@
 - `splitSentences` / `findCandidates`: a line that starts with a hypothesis label (`H2:`, `Hypothesis 2:`) now
   starts a new sentence even when the previous line has no final period (PDF line wraps drop it); before, H1 and
   H2 merged into one candidate.
+  The label must be followed by a colon and a capital, digit or quote (`H2: We predict`), so a wrapped
+  cross-reference such as `(see` / `H1) and ...` is not split; lowercase `h2:` and `HYPOTHESIS 2:` match too.
+- The "ready to use" package: a value with line breaks is collapsed to one line; the Markdown export uses a code
+  fence longer than any backtick run in the text; Markdown and Word omit the "Hypotheses, ready to use" heading
+  for a project with no hypotheses.
 
 **Added (stable core, moved from the Hypothesizer app, behaviour unchanged)**
 - `parseHypothesisSentence`: bounded rule-based reading of a one-sentence prediction into parts with spans.

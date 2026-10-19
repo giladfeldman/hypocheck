@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { importLegacyXlsx } from "../src/export-xlsx.js";
 import {
   designTable,
   discussionTemplate,

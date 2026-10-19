@@ -24,8 +24,15 @@ export function projectMarkdown(project: Project): string {
   if (c.population.trim()) lines.push(`**Population:** ${c.population.trim()}`, "");
 
   // The complete package first: prediction, measures, decision rules; open parts stay "[not specified]".
-  lines.push("## Hypotheses, ready to use", "");
-  for (const pkg of projectPackages(project)) lines.push("```", packageText(pkg), "```", "");
+  const packages = projectPackages(project);
+  if (packages.length) lines.push("## Hypotheses, ready to use", "");
+  for (const pkg of packages) {
+    const text = packageText(pkg);
+    // A fence longer than any backtick run in the user's text, so a value cannot close it early.
+    const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((r) => r.length));
+    const fence = "`".repeat(Math.max(3, longest + 1));
+    lines.push(fence, text, fence, "");
+  }
 
   lines.push("## Hypothesis statements", "", summarySentence(project), "");
   for (const s of hypothesisStatements(project)) lines.push(`- ${s}`);

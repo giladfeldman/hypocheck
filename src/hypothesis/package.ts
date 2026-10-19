@@ -19,7 +19,8 @@ export type HypothesisPackage = {
   rules: { supports: string | null; against: string | null; inconclusive: string | null };
 };
 
-const val = (s: string | undefined) => (s && s.trim() ? s.trim() : null);
+// One line per value: a newline inside a user value would break the package's line layout.
+const val = (s: string | undefined) => (s && s.trim() ? s.trim().replace(/\s*\n\s*/g, " ") : null);
 
 export function hypothesisPackage(project: Project, l: Labelled): HypothesisPackage {
   const h = l.hypothesis;

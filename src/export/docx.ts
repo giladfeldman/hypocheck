@@ -45,8 +45,9 @@ export async function projectDocx(project: Project): Promise<Buffer> {
   if (c.population.trim()) body.push(p(`Population: ${c.population.trim()}`));
 
   // The complete package first: prediction, measures, decision rules; open parts stay "[not specified]".
-  body.push(h("Hypotheses, ready to use", HeadingLevel.HEADING_1));
-  for (const pkg of projectPackages(project)) {
+  const packages = projectPackages(project);
+  if (packages.length) body.push(h("Hypotheses, ready to use", HeadingLevel.HEADING_1));
+  for (const pkg of packages) {
     const [first, ...rest] = packageText(pkg).split("\n");
     body.push(p(first, { bold: true }));
     for (const line of rest) body.push(new Paragraph({ children: [new TextRun({ text: line })], indent: line.startsWith("  ") ? { left: 360 } : undefined }));

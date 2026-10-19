@@ -109,3 +109,22 @@ describe("markdown and docx", () => {
     expect(md).toContain("  Counts against: [not specified]");
   });
 });
+
+describe("ready-to-use package edge cases (hc-review 2026-10-18)", () => {
+  it("no package heading for a project without hypotheses", () => {
+    expect(projectMarkdown(emptyProject())).not.toContain("## Hypotheses, ready to use");
+  });
+  it("multi-line values and backticks cannot break the package block", () => {
+    const p = emptyProject();
+    const a = newVariable({ name: "A", operationalization: "use ```x```\nsecond line" });
+    const b = newVariable({ name: "B" });
+    p.variables.push(a, b);
+    p.hypotheses.push(newHypothesis({ first: `v:${a.id}`, association: "increased", second: `v:${b.id}` }));
+    const md = projectMarkdown(p);
+    expect(md).toContain("  A: use ```x``` second line");
+    const block = md.slice(md.indexOf("## Hypotheses, ready to use"), md.indexOf("## Hypothesis statements"));
+    const fence = block.match(/^`{3,}/m)![0];
+    expect(fence.length).toBeGreaterThan(3);
+    expect(block.trimEnd().endsWith(fence)).toBe(true);
+  });
+});

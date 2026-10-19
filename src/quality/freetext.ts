@@ -94,7 +94,14 @@ const ABBREV = /(?:\b(?:e\.g|i\.e|cf|vs|al|etc|approx|ca|Fig|Figs|Tab|Eq|Eqs|No|
  * at . ! ? followed by whitespace (not inside decimals like "d = 0.3" or after
  * abbreviations like "e.g."), at a blank line, or before a line that starts with a hypothesis label.
  */
-const LINE_LABEL = /^\n[ \t]*(?:H\d+[a-z]?|Hypothesis\s+\d+[a-z]?)\s*[:.)]/i;
+// "H2: We …" / "Hypothesis 2: The …": a label, a colon, then a capital, digit or quote. A
+// cross-reference that a line wrap happens to put first ("(see\nH1) and …", "in\nH2: above") does
+// not match. Sticky, so it is tested at the newline itself with no lookahead window.
+const LINE_LABEL = /\n[ \t]*(?:[Hh]\d+[a-z]?|[Hh]ypothesis\s+\d+[a-z]?|HYPOTHESIS\s+\d+[a-z]?)\s*:\s*["“‘'A-Z0-9]/y;
+const lineStartsWithLabel = (text: string, i: number) => {
+  LINE_LABEL.lastIndex = i;
+  return LINE_LABEL.test(text);
+};
 
 export function splitSentences(text: string): Candidate[] {
   const out: Candidate[] = [];
@@ -114,7 +121,7 @@ export function splitSentences(text: string): Candidate[] {
     }
     // A line that starts with a hypothesis label ("H2:", "Hypothesis 2:") starts a new sentence even
     // when the previous line lost its final period (PDF line wraps drop it).
-    if (ch === "\n" && LINE_LABEL.test(text.slice(i, i + 40))) {
+    if (ch === "\n" && lineStartsWithLabel(text, i)) {
       push(i);
       continue;
     }

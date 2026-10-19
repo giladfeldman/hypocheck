@@ -92,3 +92,22 @@ describe("line-initial labels (d-3d1a48)", () => {
     expect(b).toHaveLength(1);
   });
 });
+
+describe("line-initial labels: cross-references are not split (hc-review 2026-10-18)", () => {
+  it("a wrapped line starting with 'H1)' or 'H2: above' stays inside its sentence", () => {
+    expect(splitSentences("The effect replicated our earlier prediction (see\nH1) and held for women.")).toHaveLength(1);
+    expect(splitSentences("As stated in\nH2: above, time pressure raises errors.")).toHaveLength(1);
+  });
+  it("a deeply indented label still splits", () => {
+    const s = splitSentences("H1: Sleep will increase scores compared to no sleep\n" + " ".repeat(38) + "H2: Caffeine will increase speed.");
+    expect(s).toHaveLength(2);
+  });
+});
+
+describe("line-initial label variants (hc-review attempt 2)", () => {
+  it("splits before H2: followed by a digit or quote, and before HYPOTHESIS 2: / h2:", () => {
+    for (const second of ["H2: 5 participants per cell will suffice", "H2: 'We predict more errors'", "HYPOTHESIS 2: Errors will rise", "h2: Errors will rise"]) {
+      expect(splitSentences(`H1: Sleep will increase scores compared to no sleep\n${second}`), second).toHaveLength(2);
+    }
+  });
+});
