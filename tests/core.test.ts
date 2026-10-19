@@ -6,6 +6,7 @@ import {
   LIBRARY_VERSION,
   PROMPT_IDS,
   PROMPT_VERSION,
+  AI_DOCUMENT_CHARS,
   aiCoach,
   aiCritique,
   aiExtract,
@@ -68,10 +69,19 @@ describe("prompts are byte-identical to the Hypothesizer prompt files", () => {
     expect(renderPromptText(ex.system, user)).toBe(file.slice(file.indexOf("\n") + 1));
     expect(promptSha256(ex.system, user)).toBe(sha256(file.slice(file.indexOf("\n") + 1)));
   });
-  it("the document cut defaults to the app's 30,000 characters and is configurable", () => {
-    const doc = "x".repeat(40_000);
-    expect(extractionPrompt(doc).prompt).toContain(`<<<\n${"x".repeat(30_000)}\n>>>`);
-    expect(extractionPrompt(doc, { maxChars: 35_000 }).prompt).toContain(`<<<\n${"x".repeat(35_000)}\n>>>`);
+  it("a document within the budget is sent whole; a longer one is focused, never silently cut at the start", () => {
+    const short = "x".repeat(AI_DOCUMENT_CHARS - 10);
+    expect(extractionPrompt(short).prompt).toContain(`<<<
+${short}
+>>>`);
+    expect(extractionPrompt(short).focus.complete).toBe(true);
+    const long = `${"Background sentence about prior work. ".repeat(1500)}We predict that X will increase Y.`;
+    const ex = extractionPrompt(long);
+    expect(ex.focus.complete).toBe(false);
+    expect(ex.prompt).toContain("We predict that X will increase Y.");
+    expect(ex.prompt).toContain("[…]");
+    expect(ex.focus.text.length).toBeLessThanOrEqual(AI_DOCUMENT_CHARS);
+    expect(extractionPrompt(long, { maxChars: 200_000 }).focus.complete).toBe(true);
   });
 });
 

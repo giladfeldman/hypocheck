@@ -187,18 +187,52 @@ export function findCandidates(text: string, max = 60): Candidate[] {
   return out;
 }
 
+const normQuote = (s: string) =>
+  s
+    .replace(/-\s*\n\s*/g, "") // de-hyphenate line breaks
+    .replace(/[“”«»„]/g, '"')
+    .replace(/[‘’‚]/g, "'")
+    .replace(/[‐‑‒–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
 /** True if `quote` occurs in `source` after whitespace/hyphenation/quote-mark normalisation. */
 export function quoteIsVerbatim(source: string, quote: string): boolean {
-  const norm = (s: string) =>
-    s
-      .replace(/-\s*\n\s*/g, "") // de-hyphenate line breaks
-      .replace(/[“”«»„]/g, '"')
-      .replace(/[‘’‚]/g, "'")
-      .replace(/[‐‑‒–—]/g, "-")
-      .replace(/\s+/g, " ")
-      .trim()
-      .toLowerCase();
-  const q = norm(quote);
+  const q = normQuote(quote);
   if (q.length < 15) return false;
-  return norm(source).includes(q);
+  return normQuote(source).includes(q);
+}
+
+/** Longest gap (normalised characters) allowed between two consecutive pieces of a shortened quote. */
+const MAX_ELLIPSIS_GAP = 800;
+
+/**
+ * How a model's quote matches the source: "verbatim"; "shortened" — the model cut it with "..." / "…"
+ * (measured 2026-10-19: models do this despite being told not to), and every piece of at least 12
+ * characters occurs in the source, in order, each within 800 characters of the previous one; or null.
+ */
+export function quoteMatch(source: string, quote: string): "verbatim" | "shortened" | null {
+  if (quoteIsVerbatim(source, quote)) return "verbatim";
+  const pieces = quote
+    .split(/\s*(?:\[…\]|\[\.\.\.\]|\.\.\.|…)\s*/)
+    .map(normQuote)
+    .filter(Boolean);
+  if (pieces.length < 2 || pieces.some((p) => p.length < 12) || pieces.join("").length < 30) return null;
+  const src = normQuote(source);
+  // Try each occurrence of the first piece as the anchor.
+  for (let start = src.indexOf(pieces[0]); start !== -1; start = src.indexOf(pieces[0], start + 1)) {
+    let at = start + pieces[0].length;
+    let ok = true;
+    for (const p of pieces.slice(1)) {
+      const next = src.indexOf(p, at);
+      if (next === -1 || next - at > MAX_ELLIPSIS_GAP) {
+        ok = false;
+        break;
+      }
+      at = next + p.length;
+    }
+    if (ok) return "shortened";
+  }
+  return null;
 }

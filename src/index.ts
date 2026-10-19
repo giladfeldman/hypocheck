@@ -16,6 +16,7 @@ export * from "./quality/freetext.js";
 export * from "./quality/next-decisions.js";
 export * from "./ai/tasks.js";
 export * from "./extract/selection.js";
+export * from "./extract/focus.js";
 export { projectMarkdown } from "./export/markdown.js";
 export * from "./export/xlsx-limits.js";
 export * from "./llm.js";

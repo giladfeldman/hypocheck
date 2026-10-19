@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.2.0 (2026-10-19)
+
+**Changed**
+- `extractionPrompt` no longer sends only the first `AI_DOCUMENT_CHARS` characters of a document. The reference list
+  is removed and a longer document is reduced by `focusDocument` to its opening, labelled hypotheses, hypothesis
+  sections, hypothesis-language sentences and the end of the introduction, so hypotheses stated late in a long
+  paper reach the model. `AI_DOCUMENT_CHARS` is now 18,000 (a 30,000-character prompt exceeded Groq's 8,000
+  tokens-per-minute limit). The return value adds `focus`; `aiExtract` results carry it too.
+- Extraction prompt: quotes must be complete (never shortened with "..."), variable names in the document's words;
+  a group or condition difference is structured with the group as the first variable and the
+  other group as the comparison, never as the outcome. Rule-based hints are capped at 20 sentences of 300 characters.
+  `PROMPT_VERSION` 2026-10-19.1.
+- `parseHypothesisSentence` reads "X who … perform/fare better on Y" (ambiguous until the direction is chosen).
+
+**Added**
+- `stripReferences`, `focusDocument`, `FOCUS_GAP` (long-document handling).
+- `quoteMatch`: a model's quote shortened with "..." is found when all its pieces occur in order, close together;
+  `ExtractedItem.quoteShortened` marks it (`quoteVerified` is true for it). Models shortened 8 of 10 quotes in a
+  2026-10-19 run despite the prompt, which used to show real quotes as "not found".
+- `partsPrompt` / `parseParts` / `aiParts`: AI reading of one sentence into parts (a comparison or population only
+  when the sentence names it).
+- `fillPrompt` / `parseFill` / `aiFill` and `FILL_FIELDS`: suggested answers for a hypothesis's open fields; never a
+  smallest effect of interest or alpha.
+
 ## v0.1.1 (2026-10-18)
 
 **Fixed**

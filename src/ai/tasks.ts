@@ -18,18 +18,21 @@ import { ASSOCIATIONS, HYPOTHESIS_KINDS, VARIABLE_ROLES, VARIABLE_TYPES } from "
 import { predictionSentence } from "../hypothesis/generate.js";
 import { CRITERIA } from "../quality/criteria.js";
 import type { CheckResult } from "../quality/criteria.js";
-import { findCandidates, quoteIsVerbatim } from "../quality/freetext.js";
+import { findCandidates, quoteMatch } from "../quality/freetext.js";
+import { focusDocument, type FocusedDocument } from "../extract/focus.js";
 import { promptSha256, type LlmClient, type LlmProvenance } from "../llm.js";
 import { LIBRARY_VERSION } from "../version.js";
 
 /** Version of the Hypothesizer prompt texts reproduced here (unchanged from the app). */
-export const PROMPT_VERSION = "2026-10-18.1";
+export const PROMPT_VERSION = "2026-10-19.1";
 
 /** Prompt template ids recorded with every call and result. */
 export const PROMPT_IDS = {
   extract: `hypothesizer-extract@${PROMPT_VERSION}`,
   critique: `hypothesizer-critique@${PROMPT_VERSION}`,
   coach: `hypothesizer-coach@${PROMPT_VERSION}`,
+  parts: `hypothesizer-parts@${PROMPT_VERSION}`,
+  fill: `hypothesizer-fill@${PROMPT_VERSION}`,
 } as const;
 
 /** Outcome of one AI task: the parsed result, or a typed failure. Both carry provenance. */
@@ -158,34 +161,62 @@ export function parseExtraction(text: string): Extracted | null {
   return { hypotheses };
 }
 
-/** Characters of a document that are sent to the AI models (the rule-based scan reads all of it). */
-export const AI_DOCUMENT_CHARS = 30_000;
+/**
+ * Character budget for the document part of the extraction prompt. Sized so the whole prompt
+ * stays under the smallest per-minute token limit in the free-model pool (Groq: 8,000 tokens per
+ * minute; a 30,000-character prompt was refused at 8,825 on 2026-10-19). A longer document is
+ * reduced by focusDocument() to the passages that state hypotheses, not cut at the start.
+ */
+export const AI_DOCUMENT_CHARS = 18_000;
+/** Most rule-based hint sentences listed in the extraction prompt, and their longest length. */
+const MAX_HINTS = 20;
+const MAX_HINT_CHARS = 300;
 
 /**
- * The extraction prompt. `maxChars` (default AI_DOCUMENT_CHARS, the app's cut) limits how much of
- * the document is placed in the prompt; the rule-based hint block always scans the whole document.
+ * The extraction prompt. The document is reduced to at most `maxChars` (default AI_DOCUMENT_CHARS)
+ * by focusDocument(): its reference list removed and, when still too long, only its opening and
+ * the passages with hypothesis language kept. `focus` reports what the model was given.
  */
-export function extractionPrompt(document: string, options: { maxChars?: number } = {}): { system: string; prompt: string } {
-  const maxChars = options.maxChars ?? AI_DOCUMENT_CHARS;
-  const candidates = findCandidates(document, 40);
+export function extractionPrompt(
+  document: string,
+  options: { maxChars?: number } = {},
+): { system: string; prompt: string; focus: FocusedDocument } {
+  const focus = focusDocument(document, options.maxChars ?? AI_DOCUMENT_CHARS);
+  const candidates = findCandidates(focus.text, MAX_HINTS);
   const hint = candidates.length
     ? `Sentences that look like hypotheses (a rule-based pre-scan; there may be others):\n${candidates
-        .map((c, i) => `[${i + 1}] ${c.text.replace(/\s+/g, " ")}`)
+        .map((c, i) => {
+          const flat = c.text.replace(/\s+/g, " ");
+          return `[${i + 1}] ${flat.length > MAX_HINT_CHARS ? `${flat.slice(0, MAX_HINT_CHARS)}…` : flat}`;
+        })
         .join("\n")}\n\n`
     : "";
+  const excerpt = focus.complete
+    ? ""
+    : `The document is long, so you are given its opening and the passages that mention hypotheses or predictions; "[…]" marks text left out.\n`;
   const system =
     "You extract the formal hypotheses from a research document (a paper, preregistration or proposal) " +
     "into a structured form. Extract every prediction the authors state — numbered hypotheses, unnumbered predictions, " +
-    "manipulation checks, auxiliary assumptions and exploratory predictions — each as a separate entry; not results, not background claims. " +
+    "manipulation checks, auxiliary assumptions and exploratory predictions — each as a separate entry. " +
+    "Only predictions the authors make for THEIR OWN study. Never extract: results or conclusions (\"patients showed higher activation\"), " +
+    "findings or forecasts cited from other work, rows of a results or analysis table, or remarks that something \"seems plausible\". " +
+    "A replication often restates the original study's hypotheses in several places (a design table, a summary of the original): extract each hypothesis ONCE, " +
+    "with the replication's label. If the document states no prediction for its own study (an essay, a commentary), return {\"hypotheses\": []}. " +
     "Mark kind \"focal\" ONLY if the document explicitly calls it the main, primary or focal hypothesis; otherwise use \"confirmatory\" " +
     "(or manipulation_check / auxiliary / exploratory when the document says so). " +
     "Never invent details that are not in the text: use null when the text does not say. " +
+    "A difference between groups or conditions (\"patients will differ from controls in X\", \"X is higher in group A than group B\") " +
+    "is structured as first_variable = the group or condition (e.g. \"patients\"), comparison = the other group (e.g. \"controls\"), " +
+    "second_variable = what is measured (X); never put the groups in second_variable. " +
+    "An effect that is predicted to be weaker or stronger in one domain or condition than another (\"the sunk-cost effect is weaker for time than for money\") " +
+    "is structured as first_variable = the domain or condition (\"time\"), association = decreased (weaker) or increased (stronger), " +
+    "second_variable = the effect (\"sunk-cost effect\"), comparison = the other domain (\"money\"); the two domains are never predictor and outcome of each other. " +
     SAFETY;
   const prompt =
     `Return JSON: {"hypotheses":[{` +
     `"label": "H1" or null, ` +
-    `"quote": the exact sentence(s) from the document stating it, copied character-for-character, ` +
-    `"first_variable": short name of the predictor/manipulation, ` +
+    `"quote": the exact sentence(s) from the document stating it, copied character-for-character — complete, never shortened with "..." and never reworded (the quote is checked against the document); when one sentence states several predictions, give that same whole sentence as the quote of each, ` +
+    `"first_variable": short name of the predictor/manipulation in the document's own words (plain words, not code-style names like number_of_traits), ` +
     `"first_variable_type": one of ${JSON.stringify(TYPE_IDS)} or null, ` +
     `"association": one of ${JSON.stringify(ASSOC_IDS)} (increased = higher/more, decreased = lower/less, different = no direction given, same_as = no difference predicted), ` +
     `"second_variable": short name of the outcome or null, "second_variable_type": as above or null, ` +
@@ -198,15 +229,34 @@ export function extractionPrompt(document: string, options: { maxChars?: number 
     `"test": stated statistical test or null, "falsification": stated result that would count against it or null` +
     `}]}\n\n` +
     hint +
-    `DOCUMENT:\n<<<\n${fence(document.slice(0, maxChars))}\n>>>`;
-  return { system, prompt };
+    excerpt +
+    `DOCUMENT:\n<<<\n${fence(focus.text)}\n>>>`;
+  return { system, prompt, focus };
+}
+
+/**
+ * Map a model's association to a vocabulary id. Models answer with free words despite the listed ids
+ * (measured 2026-10-19: "weaker", "cause the effect to reappear"). Only single unambiguous direction
+ * words are mapped; anything else stays "" (direction not chosen) rather than being guessed.
+ */
+export function normalizeAssociation(raw: string): string {
+  const a = raw.trim().toLowerCase();
+  if (ASSOC_IDS.includes(a as never)) return a;
+  if (/^(weaker|smaller|lower|less|fewer|reduced|decrease|decreases|negative|negatively)$/.test(a)) return "decreased";
+  if (/^(stronger|larger|higher|greater|more|increase|increases|positive|positively)$/.test(a)) return "increased";
+  if (/^(no difference|not different|equal|equivalent|same)$/.test(a)) return "same_as";
+  if (/^(difference|differs|differ|different|differs from)$/.test(a)) return "different";
+  return "";
 }
 
 export type ExtractedItem = {
   hypothesisId: string;
   label: string;
   quote: string;
+  /** The quote was found in the source: verbatim, or shortened with "..." (all pieces found in order, close together). */
   quoteVerified: boolean;
+  /** The model cut the quote with "..."; every piece was found in the source. */
+  quoteShortened: boolean;
 };
 
 /** Build a Project from an extraction. Variables are de-duplicated by case-insensitive name. */
@@ -247,7 +297,7 @@ export function extractionToProject(
       listing: kind === "auxiliary" || kind === "manipulation_check" || kind === "exploratory" ? "unlisted" : "main",
       kind,
       first: ref(x.first_variable, x.first_variable_type),
-      association: ASSOC_IDS.includes(x.association) ? x.association : "",
+      association: normalizeAssociation(x.association),
       second: ref(x.second_variable, x.second_variable_type),
       theory: x.theory,
       mechanism: x.mechanism,
@@ -276,7 +326,8 @@ export function extractionToProject(
       h.qualifier = ref(x.comparison, "categorical_level");
     }
     project.hypotheses.push(h);
-    items.push({ hypothesisId: h.id, label: x.label, quote: x.quote.trim(), quoteVerified: quoteIsVerbatim(source, x.quote) });
+    const match = quoteMatch(source, x.quote);
+    items.push({ hypothesisId: h.id, label: x.label, quote: x.quote.trim(), quoteVerified: match !== null, quoteShortened: match === "shortened" });
   }
   return { project, items };
 }
@@ -286,9 +337,160 @@ export async function aiExtract(
   document: string,
   client: LlmClient,
   options: AiTaskOptions & IdOptions & { maxChars?: number } = {},
-): Promise<AiTaskResult<{ project: Project; items: ExtractedItem[] }>> {
+): Promise<AiTaskResult<{ project: Project; items: ExtractedItem[]; focus: FocusedDocument }>> {
   const built = extractionPrompt(document, { maxChars: options.maxChars });
-  return runTask(client, PROMPT_IDS.extract, built, 6000, parseExtraction, (ex) => extractionToProject(document, ex, options), options);
+  return runTask(client, PROMPT_IDS.extract, built, 6000, parseExtraction, (ex) => ({ ...extractionToProject(document, ex, options), focus: built.focus }), options);
+}
+
+// ───────────────────────── parts of one sentence ─────────────────────────
+
+const PartsSchema = z.object({
+  predictor: nullableStr,
+  outcome: nullableStr,
+  association: nullableStr,
+  comparison: nullableStr,
+  population: nullableStr,
+});
+
+/** An AI reading of one prediction sentence, in the shape the confirmation screen asks for. */
+export type AiParts = {
+  predictor: string;
+  outcome: string;
+  /** vocab association id, or "" when the sentence does not state a direction. */
+  association: string;
+  comparison: string;
+  population: string;
+};
+
+const squash = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+/**
+ * Parse the parts reply for `sentence`. A comparison or population is kept only when its words
+ * occur in the sentence (the model must not add a group the user did not name); predictor and
+ * outcome may be reworded as short noun phrases ("perform better" → "performance"). A reply
+ * without both a predictor and an outcome is unusable.
+ */
+export function parseParts(text: string, sentence: string): AiParts | null {
+  const r = PartsSchema.safeParse(extractJsonObject(text));
+  if (!r.success) return null;
+  const { predictor, outcome } = r.data;
+  if (!predictor || !outcome) return null;
+  const inSentence = (s: string) => !!s && squash(sentence).includes(squash(s));
+  return {
+    predictor,
+    outcome,
+    association: ASSOC_IDS.includes(r.data.association as never) ? r.data.association : "",
+    comparison: inSentence(r.data.comparison) ? r.data.comparison : "",
+    population: inSentence(r.data.population) ? r.data.population : "",
+  };
+}
+
+export function partsPrompt(sentence: string): { system: string; prompt: string } {
+  const system =
+    "You help a student state a research prediction precisely. Split ONE prediction sentence into its parts. " +
+    "Use the student's own words wherever possible; turn a verb phrase into a short noun phrase only when needed " +
+    "(\"perform better\" → \"performance\", \"sleep more\" → \"sleep duration\"). " +
+    "Never add anything the sentence does not say: no population, comparison group or direction that is not in it. " +
+    SAFETY;
+  const prompt =
+    `Return JSON: {"predictor": what varies or is manipulated (short noun phrase), ` +
+    `"outcome": what is measured (short noun phrase), ` +
+    `"association": one of ${JSON.stringify(ASSOC_IDS)} or null — increased = higher predictor goes with higher outcome (\"better performance\" counts as higher), ` +
+    `decreased = higher predictor goes with lower outcome, different = a difference with no direction, same_as = no difference predicted, null = the sentence states no relationship direction, ` +
+    `"comparison": the group or condition compared against, copied from the sentence, or null, ` +
+    `"population": who the prediction is about, copied from the sentence, or null}\n\n` +
+    `SENTENCE:\n<<<\n${fence(sentence)}\n>>>`;
+  return { system, prompt };
+}
+
+/** Split one sentence into parts with the injected client (the "couldn't separate" fallback). */
+export async function aiParts(sentence: string, client: LlmClient, options: AiTaskOptions = {}): Promise<AiTaskResult<{ parts: AiParts }>> {
+  return runTask(client, PROMPT_IDS.parts, partsPrompt(sentence), 800, (t) => parseParts(t, sentence), (parts) => ({ parts }), options);
+}
+
+// ───────────────────────── suggested answers ─────────────────────────
+
+/** The hypothesis fields the AI may suggest a value for. Never a smallest effect of interest or alpha. */
+export const FILL_FIELDS = [
+  "association",
+  "population",
+  "first_measure",
+  "second_measure",
+  "comparison",
+  "theory",
+  "mechanism",
+  "supports",
+  "falsifies",
+  "test",
+] as const;
+export type FillField = (typeof FILL_FIELDS)[number];
+export type FillSuggestion = { field: FillField; value: string; why: string };
+
+const FillSchema = z.object({
+  suggestions: z
+    .array(z.object({ field: z.string(), value: z.string(), why: nullableStr }))
+    .max(20),
+});
+
+/** Keep one suggestion per known field, drop empty values and association values outside the vocabulary. */
+export function parseFill(text: string): FillSuggestion[] | null {
+  const r = FillSchema.safeParse(extractJsonObject(text));
+  if (!r.success) return null;
+  const seen = new Set<string>();
+  const out: FillSuggestion[] = [];
+  for (const s of r.data.suggestions) {
+    const field = s.field as FillField;
+    const value = s.value.trim();
+    if (!FILL_FIELDS.includes(field) || !value || seen.has(field)) continue;
+    if (field === "association" && !ASSOC_IDS.includes(value as never)) continue;
+    seen.add(field);
+    out.push({ field, value, why: s.why });
+  }
+  return out;
+}
+
+const FILL_FIELD_HELP: Record<FillField, string> = {
+  association: `the expected direction, one of ${JSON.stringify(ASSOC_IDS)}`,
+  population: "who the prediction is about (a population a study like this would sample)",
+  first_measure: "how the first variable would be measured or manipulated (a concrete, commonly used operationalisation)",
+  second_measure: "how the second variable would be measured (a concrete, commonly used measure)",
+  comparison: "the other level of the same group or condition variable to compare against (e.g. the control condition); never invented cut-off groups of a continuous variable",
+  theory: "a theory this prediction could follow from",
+  mechanism: "the process by which the first variable would affect the second",
+  supports: "the result that would support the prediction, with [SESOI] where the smallest effect of interest goes",
+  falsifies: "the result that would count against it: an effect reliably smaller than [SESOI] (equivalence test) or a reliable effect in the opposite direction — never only a non-significant result",
+  test: "the statistical test that fits the design",
+};
+
+/**
+ * Prompt for suggested answers to a hypothesis's open fields. `fields` = the fields still empty.
+ * Suggestions are proposals for the student to accept or reject; numbers the researcher must
+ * justify (smallest effect of interest, alpha, sample size) are never suggested.
+ */
+export function fillPrompt(project: Project, h: Hypothesis, fields: readonly FillField[]): { system: string; prompt: string } {
+  const system =
+    "You are a research-methods advisor helping a student make one hypothesis specific. Suggest a concrete answer for each listed open field. " +
+    "Each suggestion is a proposal the student will accept or reject, so be concrete and conventional for the field, and say briefly why. " +
+    "Never suggest numbers the researcher must justify (smallest effect of interest, alpha, sample size): write [SESOI] instead. " +
+    "Do not contradict what the hypothesis already states. Use causal wording only if a variable is manipulated. " +
+    SAFETY;
+  const prompt =
+    `HYPOTHESIS:\n<<<\n${fence(describeHypothesis(project, h))}\n>>>\n\n` +
+    `Open fields:\n${fields.map((f) => `- ${f}: ${FILL_FIELD_HELP[f]}`).join("\n")}\n\n` +
+    `Return JSON: {"suggestions":[{"field": one of the open fields above, "value": the suggested text, "why": one short sentence}]}. ` +
+    `At most one suggestion per field; skip a field when no sensible suggestion exists.`;
+  return { system, prompt };
+}
+
+/** Suggested answers for the open fields of one hypothesis. Never changes a check by itself. */
+export async function aiFill(
+  project: Project,
+  h: Hypothesis,
+  fields: readonly FillField[],
+  client: LlmClient,
+  options: AiTaskOptions = {},
+): Promise<AiTaskResult<{ suggestions: FillSuggestion[] }>> {
+  return runTask(client, PROMPT_IDS.fill, fillPrompt(project, h, fields), 2500, parseFill, (suggestions) => ({ suggestions }), options);
 }
 
 // ───────────────────────── critique ─────────────────────────

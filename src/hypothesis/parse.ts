@@ -322,7 +322,7 @@ const P_BE_DIR = re(
   `^(.+?)\\s+(?:${MOD}\\s+)?${BE}\\s+(?:(?:significantly|substantially|much|slightly)\\s+)?(${DIRW})\\s+(?:in|among|for|when|during|after|under)\\s+(.+?)(?:\\s+than\\s+(?:(?:in|among|for|when|during|after|under)\\s+)?(.+))?$`,
 );
 const P_HAVE = re(
-  `^(.+?)\\s+(?:${MOD}\\s+)?(?:have|has|show|shows|report|reports|display|displays|exhibit|exhibits|score|scores|make|makes|experience|experiences|produce|produces|get|gets|achieve|achieves)\\s+(?:(?:significantly|substantially|much|slightly)\\s+)?(${DIRW})\\s+(?:(?:on|in)\\s+)?(.+?)(?:\\s+than\\s+(.+))?$`,
+  `^(.+?)\\s+(?:${MOD}\\s+)?(?:have|has|show|shows|report|reports|display|displays|exhibit|exhibits|score|scores|perform|performs|fare|fares|make|makes|experience|experiences|produce|produces|get|gets|achieve|achieves)\\s+(?:(?:significantly|substantially|much|slightly)\\s+)?(${DIRW})\\s+(?:(?:on|in)\\s+)?(.+?)(?:\\s+than\\s+(.+))?$`,
 );
 const P_LEAD = re(
   `^(?:(${DIRW})\\s+)?(.+?)\\s+(?:${MOD}\\s+)?(?:lead|leads|led|result|results|resulted|cause|causes|caused)\\s+(?:to\\s+|in\\s+)?(?:(${DIRW})\\s+)?(.+)$`,

@@ -18,7 +18,7 @@ spreadsheet by Bjørn Sætrevik and team.
 ## Install
 
 ```bash
-npm install github:giladfeldman/hypocheck#v0.1.1
+npm install github:giladfeldman/hypocheck#v0.2.0
 # only if you use the Word / Excel exports:
 npm install docx exceljs
 ```
@@ -133,7 +133,7 @@ results and never changes a status.
 ### Free text (no AI)
 
 `splitSentences(text)` and `findCandidates(text, max)` → `Candidate[]` with exact offsets;
-`specificityLevel(text)` → `Specificity` (0–3; `LEVEL_LABELS`); `quoteIsVerbatim(source, quote)`;
+`specificityLevel(text)` → `Specificity` (0–3; `LEVEL_LABELS`); `quoteIsVerbatim(source, quote)`; `quoteMatch(source, quote)` → `"verbatim" | "shortened" | null` (a quote cut with "..." counts as found only when every piece of 12+ characters occurs in order, each within 800 characters of the previous; extraction items carry `quoteVerified` and `quoteShortened`);
 `defaultAccepted(items)` (which extracted items start selected: only verbatim-verified ones).
 
 ### AI tasks with an injected model client
@@ -152,16 +152,30 @@ interface LlmResponse { text: string; servedModel?: string | null; finishReason?
   usage?: Record<string, number | string | null> | null; requestId?: string | null }
 ```
 
-- `aiExtract(document, client, options)`, `aiCritique(project, h, results, client, options)`,
-  `aiCoach(project, step, client, options)` → `AiTaskResult` — `{ ok: true, model, provenance, ... }` or
+- `aiExtract(document, client, options)` (its result also carries `focus`), `aiCritique(project, h, results, client, options)`,
+  `aiCoach(project, step, client, options)`, `aiParts(sentence, client, options)` → `{ parts: AiParts }`,
+  `aiFill(project, h, fields, client, options)` → `{ suggestions: FillSuggestion[] }` → `AiTaskResult` — `{ ok: true, model, provenance, ... }` or
   `{ ok: false, reason: "unusable_reply" | "client_error", error?, provenance }`. `AiTaskOptions` carries `signal`.
 - `LlmProvenance` = `{ promptId, promptSha256, servedModel, libraryVersion }` on every result.
-- Prompts and parsers: `extractionPrompt(document, options)` (document cut `maxChars`, default
-  `AI_DOCUMENT_CHARS` = 30,000 as in the app), `parseExtraction(text)` → `Extracted`,
+- Long documents: `stripReferences(text)` → `StrippedReferences` `{ text, removedChars }` removes every reference
+  list in the second half of a document (up to an appendix/supplement heading); `focusDocument(document, budgetChars)`
+  → `FocusedDocument` `{ text, complete, includedChars, totalChars, passages, referencesRemovedChars }` keeps the
+  opening, labelled hypotheses, hypothesis sections, hypothesis-language sentences and the end of the introduction,
+  joined by `FOCUS_GAP` (`"
+[…]
+"`), each passage an exact slice so quotes stay verbatim.
+- Prompts and parsers: `extractionPrompt(document, options)` → `{ system, prompt, focus }` (the document is reduced
+  to `maxChars`, default `AI_DOCUMENT_CHARS` = 18,000, by `focusDocument`; never cut at the start), `parseExtraction(text)` → `Extracted`, `normalizeAssociation(raw)` (vocabulary id, or a single direction word such as "weaker" mapped; a phrase stays `""`),
   `extractionToProject(source, ex, options)` → `{ project, items: ExtractedItem[] }`, `critiquePrompt(project, h, results)`, `parseCritique(text)` → `Critique`, `MAX_SUGGESTIONS`, `describeHypothesis(project, h)`,
   `coachPrompt(project, step)`, `parseCoach(text)`, `extractJsonObject(text)`, `fence(text)`.
-- `PROMPT_VERSION` (`2026-10-18.1`) and `PROMPT_IDS` (`hypothesizer-extract@…`, `hypothesizer-critique@…`,
-  `hypothesizer-coach@…`). The prompt text is byte-identical to the Hypothesizer app's published prompt files
+- One sentence into parts (the fallback when `parseHypothesisSentence` cannot read it): `partsPrompt(sentence)`,
+  `parseParts(text, sentence)` → `AiParts` `{ predictor, outcome, association, comparison, population }`; a
+  comparison or population is kept only when the sentence names it.
+- Suggested answers for open fields: `FILL_FIELDS` / `FillField` (`association`, `population`, `first_measure`,
+  `second_measure`, `comparison`, `theory`, `mechanism`, `supports`, `falsifies`, `test` — never a smallest effect of
+  interest or alpha), `fillPrompt(project, h, fields)`, `parseFill(text)` → `FillSuggestion[]` `{ field, value, why }`.
+- `PROMPT_VERSION` (`2026-10-19.1`) and `PROMPT_IDS` (`hypothesizer-extract@…`, `hypothesizer-critique@…`,
+  `hypothesizer-coach@…`, `hypothesizer-parts@…`, `hypothesizer-fill@…`). The prompt text is byte-identical to the Hypothesizer app's published prompt files
   (checked by `tests/core.test.ts`), so model-routing measurements made with those files stay valid.
 - `promptSha256(system, prompt)` hashes `renderPromptText(system, prompt)` =
   `"# SYSTEM\n" + system + "\n# USER\n" + prompt + "\n"` — the published prompt-file layout without its version line.
