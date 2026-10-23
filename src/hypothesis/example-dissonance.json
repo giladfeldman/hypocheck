@@ -33,7 +33,7 @@
       "role": "predictor",
       "type": "continuous",
       "description": "The extent to which participants felt they were free to choose to write the arguments or not.",
-      "operationalization": "At T2, participants will respond to the question \"To which extent did you feel you were free to choose whether or not to write the arguments earlier in this task?\" Responses will be on a 1-7 Likert scale (\"not free to choose at all\" <-> \"completely free to choose\"). Higher scores reflect more freedom of choice."
+      "operationalization": "At T2, participants will respond to the question \"To which extent did you feel you were free to choose whether or not to write the arguments earlier in this task?\" Responses will be on a 1-7 Likert scale (\"not free to choose at all\" <-> \"completely free to choose\"). A score of 4 or higher will be interpreted as a freely chosen action."
     },
     {
       "id": "v4",
@@ -57,7 +57,7 @@
       "role": "control",
       "type": "continuous",
       "description": "Whether participants perceive the task as uncomfortable or dislike it.",
-      "operationalization": "At T3, participants indicate the extent to which they enjoyed participating in the experiment on a 1-7 Likert (\"very much enjoyed participating\" <-> \"did not at all enjoy participating\"). Higher scores reflect more discomfort."
+      "operationalization": "At T3, participants will indicate the extent to which they enjoyed participating in the experiment on a 1-7 Likert (\"very much enjoyed participating\" <-> \"did not at all enjoy participating\"). Higher scores reflect more discomfort."
     }
   ],
   "hypotheses": [

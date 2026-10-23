@@ -18,7 +18,7 @@ spreadsheet by Bjørn Sætrevik and team.
 ## Install
 
 ```bash
-npm install github:giladfeldman/hypocheck#v0.3.0
+npm install github:giladfeldman/hypocheck#v0.3.1
 # only if you use the Word / Excel exports:
 npm install docx exceljs
 ```

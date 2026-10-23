@@ -26,6 +26,11 @@ describe("dissonanceExample", () => {
     expect(labelHypotheses(p.hypotheses).map((l) => l.label)).toEqual(["MC1", "H1a", "H1b", "H2"]);
   });
 
+  it("states the freedom-of-choice cutoff that its \"in the condition of\" hypotheses rely on", () => {
+    const choice = p.variables.find((v) => v.name === "Perceived freedom of choice")!;
+    expect(choice.operationalization).toMatch(/A score of 4 or higher will be interpreted as a freely chosen action\.$/);
+  });
+
   it("raises no project-level issue: every variable is used, a focal hypothesis and a research question are set", () => {
     expect(checkProject(p)).toEqual([]);
   });

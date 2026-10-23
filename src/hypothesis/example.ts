@@ -14,8 +14,9 @@ export function confBiasExample(): Project {
 /**
  * The current worked example from Bjørn Sætrevik and team's Hypothesizer v0.52 sheet: cognitive
  * dissonance and attitude change (example-dissonance.json), with a manipulation check, a focal
- * hypothesis with a sub-hypothesis, and a second main hypothesis. Imported from the sheet; the
- * title and research question are added, and the effect-name typo "chance" reads "change".
+ * hypothesis with a sub-hypothesis, and a second main hypothesis. Imported from the sheet as updated
+ * 2026-10-23 (freedom-of-choice cutoff: 4 or higher on the 1-7 scale); the title and research question
+ * are added, and the effect-name typo "chance" reads "change".
  */
 export function dissonanceExample(): Project {
   return ProjectSchema.parse(structuredClone(DISSONANCE_EXAMPLE_DATA));

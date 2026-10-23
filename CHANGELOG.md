@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.1 (2026-10-23)
+
+**Changed**
+- `dissonanceExample()`: follows the sheet's 2026-10-23 update. "Perceived freedom of choice" now states its
+  cutoff ("A score of 4 or higher will be interpreted as a freely chosen action"), and "Perceived discomfort"
+  reads in the future tense.
+
 ## v0.3.0 (2026-10-23)
 
 **Added**
