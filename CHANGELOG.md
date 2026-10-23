@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.0 (2026-10-23)
 
 **Added**
 - `dissonanceExample()`: the current worked example from Bjørn Sætrevik and team's v0.52 sheet (cognitive

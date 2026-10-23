@@ -1,2 +1,2 @@
 /** Library version stamped on every result. tests/core.test.ts keeps it equal to package.json. */
-export const LIBRARY_VERSION = "0.2.0";
+export const LIBRARY_VERSION = "0.3.0";

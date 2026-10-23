@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use hypocheck in your research, please cite it as below."
 type: software
 title: "hypocheck: specifying and checking scientific hypotheses"
-version: "0.2.0"
+version: "0.3.0"
 license: MIT
 repository-code: "https://github.com/giladfeldman/hypocheck"
 authors:

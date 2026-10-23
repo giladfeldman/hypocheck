@@ -1,6 +1,6 @@
 {
   "name": "hypocheck",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Hypothesis specification and checking: a zod project model for specific, falsifiable hypotheses, 18 deterministic authoring criteria, statement/template generation, exports, injected-LLM extraction prompts, and an experimental evidence-graph format with a published-paper consistency evaluator.",
   "license": "MIT",
   "author": "Gilad Feldman",
