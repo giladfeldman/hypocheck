@@ -6,6 +6,11 @@
  *   "Specify hypotheses"  rows 2–21: A theory, B mechanism, C effect name, D listing,
  *                         E first var, F association, G second var, H qualification,
  *                         I qualifying var, J hypothesis type
+ * The newer template (2026) renames the first tab "Describe variables", moves its rows to 12–31
+ * (header "Variable name:" in row 11), and inserts "Effect size (optional)" as column J, so the
+ * hypothesis type moves to K. Both are found from their headers rather than fixed positions.
+ * Its verbal effect size ("medium effect") is the effect expected if the theory is right, so it
+ * is read into effectSize.optimistic.
  * Variable cells may name a variable or a previously named effect (column C).
  */
 import ExcelJS from "exceljs";
@@ -49,15 +54,31 @@ export async function importLegacyXlsx(data: ArrayBuffer | Buffer, options: IdOp
   const warnings: string[] = [];
   const project = emptyProject();
 
-  const vs = wb.getWorksheet("State variables");
+  const vs = wb.getWorksheet("State variables") ?? wb.getWorksheet("Describe variables");
   const hs = wb.getWorksheet("Specify hypotheses");
   if (!vs || !hs) {
     throw new Error(
-      'This does not look like a Hypothesizer v0.5 sheet (expected tabs "State variables" and "Specify hypotheses").',
+      'This does not look like a Hypothesizer sheet (expected tabs "State variables" or "Describe variables", and "Specify hypotheses").',
     );
   }
 
-  const varLast = XLSX_VARIABLE_FIRST_ROW + XLSX_MAX_VARIABLES - 1;
+  // Variable rows start below the "Variable name:" header (row 8 in v0.5, row 11 in the newer template).
+  let varFirst = XLSX_VARIABLE_FIRST_ROW;
+  for (let r = 1; r <= 20; r++) {
+    if (/^variable name/i.test(cellText(vs.getRow(r).getCell(1).value).trim())) {
+      varFirst = r + 1;
+      break;
+    }
+  }
+  // Hypothesis columns after I, located by header: v0.5 has the type in J; the newer template
+  // has the effect size in J and the type in K.
+  const header = Array.from({ length: 15 }, (_, i) => cellText(hs.getRow(1).getCell(i + 1).value).trim().toLowerCase());
+  const effectCol = header.findIndex((h) => h.startsWith("effect size"));
+  const typeIdx = header.findIndex((h) => h.startsWith("hypothesis type"));
+  const typeCol = typeIdx >= 0 ? typeIdx : 9;
+  const nCols = Math.max(10, typeCol + 1, effectCol + 1);
+
+  const varLast = varFirst + XLSX_MAX_VARIABLES - 1;
   const hypLast = XLSX_HYPOTHESIS_FIRST_ROW + XLSX_MAX_HYPOTHESES - 1;
   // Rows beyond the v0.5 layout are not read; say so instead of dropping them silently.
   // Only for Hypothesizer's own exports (they carry the details tab): the original v0.5
@@ -69,16 +90,16 @@ export async function importLegacyXlsx(data: ArrayBuffer | Buffer, options: IdOp
     if (name) beyond.push(name);
   }
   if (beyond.length)
-    warnings.push(`Only the first ${XLSX_MAX_VARIABLES} variables (rows ${XLSX_VARIABLE_FIRST_ROW}–${varLast}) were read; not imported: ${beyond.join(", ")}.`);
+    warnings.push(`Only the first ${XLSX_MAX_VARIABLES} variables (rows ${varFirst}–${varLast}) were read; not imported: ${beyond.join(", ")}.`);
   let extraHyps = 0;
   for (let r = hypLast + 1; ownExport && r <= hs.rowCount; r++) {
-    if (Array.from({ length: 10 }, (_, i) => cellText(hs.getRow(r).getCell(i + 1).value)).some((c) => c.trim())) extraHyps++;
+    if (Array.from({ length: nCols }, (_, i) => cellText(hs.getRow(r).getCell(i + 1).value)).some((c) => c.trim())) extraHyps++;
   }
   if (extraHyps)
     warnings.push(`Only the first ${XLSX_MAX_HYPOTHESES} hypothesis rows (rows ${XLSX_HYPOTHESIS_FIRST_ROW}–${hypLast}) were read; ${extraHyps} further row(s) were not imported.`);
 
   const varByKey = new Map<string, string>();
-  for (let r = XLSX_VARIABLE_FIRST_ROW; r <= varLast; r++) {
+  for (let r = varFirst; r <= varLast; r++) {
     const row = vs.getRow(r);
     const name = stripQuotes(cellText(row.getCell(1).value));
     if (!name) continue;
@@ -100,8 +121,8 @@ export async function importLegacyXlsx(data: ArrayBuffer | Buffer, options: IdOp
   const raws: Raw[] = [];
   for (let r = XLSX_HYPOTHESIS_FIRST_ROW; r <= hypLast; r++) {
     const row = hs.getRow(r);
-    const cells = Array.from({ length: 10 }, (_, i) => cellText(row.getCell(i + 1).value));
-    if (cells.slice(0, 10).every((c) => !c.trim())) continue;
+    const cells = Array.from({ length: nCols }, (_, i) => cellText(row.getCell(i + 1).value));
+    if (cells.every((c) => !c.trim())) continue;
     raws.push({ cells, row: r });
   }
 
@@ -142,7 +163,8 @@ export async function importLegacyXlsx(data: ArrayBuffer | Buffer, options: IdOp
     if (cells[7].trim() && !qual) warnings.push(`Row ${row}: unknown qualification "${cells[7].trim()}".`);
     h.qualification = qual ?? "";
     h.qualifier = resolve(cells[8], row, "I");
-    h.kind = kindFromLegacy(cells[9]);
+    h.kind = kindFromLegacy(cells[typeCol]);
+    if (effectCol >= 0) h.effectSize.optimistic = cells[effectCol].trim();
     project.hypotheses.push(h);
   });
 

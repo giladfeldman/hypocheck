@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+**Added**
+- `dissonanceExample()`: the current worked example from Bjørn Sætrevik and team's v0.52 sheet (cognitive
+  dissonance and attitude change). `confBiasExample()` stays, and the golden tests still use it.
+- `importLegacyXlsx` reads the newer (2026) Hypothesizer template: the "Describe variables" tab with its rows
+  below the "Variable name:" header, the "Effect size (optional)" column (read into `effectSize.optimistic`, the
+  effect expected if the theory is right) and the hypothesis type found by its header. `associationFromLegacy`
+  accepts "associated with increased/decreased". The v0.5 layout reads as before.
+
 ## v0.2.0 (2026-10-19)
 
 **Changed**

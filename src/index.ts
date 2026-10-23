@@ -9,7 +9,7 @@ export * from "./hypothesis/generate.js";
 export * from "./hypothesis/parse.js";
 export * from "./hypothesis/from-parts.js";
 export * from "./hypothesis/package.js";
-export { confBiasExample } from "./hypothesis/example.js";
+export { confBiasExample, dissonanceExample } from "./hypothesis/example.js";
 export * from "./quality/citations.js";
 export * from "./quality/criteria.js";
 export * from "./quality/freetext.js";

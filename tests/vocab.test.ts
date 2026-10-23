@@ -14,6 +14,9 @@ describe("associationFromLegacy", () => {
     ["not be significantly diffrent from ", "same_as"],
     ["be different from ", "different"],
     ["increase ", "increased"],
+    // Newer (2026) template wording.
+    ["associated with increased ", "increased"],
+    ["associated with decreased ", "decreased"],
   ])("%s → %s", (raw, id) => {
     expect(associationFromLegacy(raw)).toBe(id);
   });

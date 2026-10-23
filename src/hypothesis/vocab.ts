@@ -123,7 +123,8 @@ export function associationById(id: string): Association | undefined {
 
 /** Map the v0.5 spreadsheet's free-form association strings onto our ids. */
 export function associationFromLegacy(raw: string): string | undefined {
-  const s = raw.trim().toLowerCase();
+  // The newer template words its options "associated with increased" etc.
+  const s = raw.trim().toLowerCase().replace(/^(will be )?associated with\s+/, "");
   if (!s) return undefined;
   // Order matters: chance and negated-difference phrases first, so "higher than chance"
   // is not read as "higher" and "not be different from" is not read as "different".

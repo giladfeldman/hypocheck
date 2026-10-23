@@ -74,7 +74,11 @@ for (const issue of toPluginIssues(report)) console.log(issue.severity, issue.ti
 - Ids: `newId(prefix)` is the default generator (time + counter + random, the app's format). Pass
   `{ idGen }` (`IdOptions`, `IdGenerator`) to any creating function for deterministic ids, e.g.
   `sequentialIds(start)` → `v1`, `v2`, `h1`, …
-- `confBiasExample()` — the worked example from the v0.5 sheet (Bjørn Sætrevik and team).
+- `confBiasExample()` — the original worked example from the v0.5 sheet (Bjørn Sætrevik and team): confirmation bias
+  in the Wason selection task.
+- `dissonanceExample()` — the current worked example from the v0.52 sheet (Bjørn Sætrevik and team): cognitive
+  dissonance and attitude change, with a manipulation check, a focal hypothesis with a sub-hypothesis, and a second
+  main hypothesis.
 
 ### Vocabularies
 
@@ -200,8 +204,9 @@ import { projectXlsx, importLegacyXlsx, stripQuotes } from "hypocheck/export-xls
 - `projectDocx(project)` → `Buffer` (Word, landscape, with the design table).
 - `projectXlsx(project)` → `Buffer` in the v0.5 layout plus a "Hypothesizer details" tab. Not a complete backup
   (see `xlsxLossWarnings`); the project JSON is.
-- `importLegacyXlsx(data, options)` → `ImportReport` (`{ project, warnings }`) for v0.5 sheets and this library's
-  own exports; `stripQuotes(s)`.
+- `importLegacyXlsx(data, options)` → `ImportReport` (`{ project, warnings }`) for v0.5 sheets, the newer
+  2026 template ("Describe variables" tab, "associated with increased/decreased" wording, an effect-size column read
+  into `effectSize.optimistic`) and this library's own exports; `stripQuotes(s)`.
 
 ## Experimental: `hypocheck/experimental`
 

@@ -165,8 +165,10 @@ describe("package metadata", () => {
     expect(Object.keys(pkg.dependencies)).toEqual(["zod"]);
     expect(pkg.peerDependenciesMeta).toEqual({ docx: { optional: true }, exceljs: { optional: true } });
   });
-  it("the bundled example .ts module equals example-confbias.json", async () => {
+  it("the bundled example .ts modules equal their .json files", async () => {
     const { CONFBIAS_EXAMPLE_DATA } = await import("../src/hypothesis/example-confbias.data.js");
     expect(CONFBIAS_EXAMPLE_DATA).toEqual(JSON.parse(read("../src/hypothesis/example-confbias.json")));
+    const { DISSONANCE_EXAMPLE_DATA } = await import("../src/hypothesis/example-dissonance.data.js");
+    expect(DISSONANCE_EXAMPLE_DATA).toEqual(JSON.parse(read("../src/hypothesis/example-dissonance.json")));
   });
 });
